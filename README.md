@@ -15,4 +15,13 @@ you can specify a different env variable to get the default mode via `-n <env va
 
 And you can specify the mode directly via `-m <mode>`
 
-test it with `ldenv -m production env`
+
+for example with with `ldenv -m production env`
+
+it will load the following in order
+
+- .env.production.local
+- .env.production
+- .env
+
+and execute the command `env`
