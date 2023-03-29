@@ -1,6 +1,6 @@
 [package]
 name = "ldenv"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 description = "program that load multiple env files based on mode and execute a command."
 repository = "https://github.com/wighawag/ldenv"

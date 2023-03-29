@@ -75,7 +75,6 @@ fn main() {
     if !mode.eq("local") {
         let mode_local_path = format!(".env.{}.local",mode);
         let mode_local_result = dotenvy::from_filename(&mode_local_path);
-
         match mode_local_result {
             Ok(_) => (),
             Err(error) => match error.not_found() {
@@ -84,22 +83,31 @@ fn main() {
             },
         };
 
+        let mode_path = format!(".env.{}",mode);
+        let mode_result = dotenvy::from_filename(&mode_path);
+        match mode_result {
+            Ok(_) => (),
+            Err(error) => match error.not_found() {
+                true => (),
+                false => die!("error: failed to load mode environment from {}: {}", mode_path, error)
+            },
+        };
+
     }
     
-    let mode_path = format!(".env.{}",mode);
-    let mode_result = dotenvy::from_filename(&mode_path);
-
-    match mode_result {
+    let env_local_path = ".env.local";
+    let env_local_result = dotenvy::from_filename(&env_local_path);
+    match env_local_result {
         Ok(_) => (),
         Err(error) => match error.not_found() {
             true => (),
-            false => die!("error: failed to load mode environment from {}: {}", mode_path, error)
+            false => die!("error: failed to load local environment from {}: {}", env_local_path, error)
         },
     };
+    
 
     let env_path = format!(".env");
     let env_result = dotenvy::from_filename(&env_path);
-
     match env_result {
         Ok(_) => (),
         Err(error) => match error.not_found() {
