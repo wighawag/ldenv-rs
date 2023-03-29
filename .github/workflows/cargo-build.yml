@@ -23,6 +23,7 @@ jobs:
           mkdir builds
           mkdir builds/ldenv-linux
           cp target/release/ldenv builds/ldenv-linux
+          mkdir dist
           tar -C builds -czvf dist/ldenv-linux.tar.gz ldenv-linux
 
       # - name: Release
@@ -82,7 +83,12 @@ jobs:
 
       - name: Build for mac
         run: |
-          cargo build --all --release && strip target/release/ldenv && mv target/release/ldenv target/release/ldenv_darwin
+          cargo build --all --release && strip target/release/ldenv
+          mkdir builds
+          mkdir builds/ldenv-macos
+          cp target/release/ldenv builds/ldenv-macos
+          mkdir dist
+          tar -C builds -czvf dist/ldenv-macos.tar.gz ldenv-macos
 
       # - name: Release
       #   uses: softprops/action-gh-release@v1
