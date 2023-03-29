@@ -1,6 +1,13 @@
 name: Rust
 
-on: [push]
+on:
+  push:
+    tags: ["v*.*.*"]
+
+# TODO
+# https://github.com/actions/upload-artifact
+# https://github.com/actions/download-artifact
+# release
 
 jobs:
   build:
