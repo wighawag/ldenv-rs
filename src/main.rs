@@ -30,9 +30,9 @@ fn make_command(name: &str, args: Vec<&str>) -> process::Command {
 fn main() {
     
 
-    let matches = clap::Command::new("dotenvy")
-        .about("Run a command using the environment in a .env file")
-        .override_usage("dotenvy <COMMAND> [ARGS]...")
+    let matches = clap::Command::new("ldenv")
+        .about("Run a command using the environment from .env, .env.local (, env.<mode> and env.<mode>.local) files")
+        .override_usage("ldenv [OPTIONS] <COMMAND> [...COMMAND_ARGS]")
         .allow_external_subcommands(true)
         .arg_required_else_help(true)
         .arg(
