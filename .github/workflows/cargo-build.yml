@@ -19,7 +19,7 @@ jobs:
 
       - name: Build
         run: |
-          cargo build --all --release && strip target/release/ldenv && mv target/release/ldenv target/release/ldenv-linux
+          cargo build --all --release && strip target/release/ldenv
           mkdir builds
           mkdir builds/ldenv-linux
           cp target/release/ldenv builds/ldenv-linux
