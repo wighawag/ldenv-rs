@@ -1,9 +1,11 @@
 // mostly taken form dotenvy
 
 use clap::Arg;
-use std::os::unix::process::CommandExt;
 use std::process;
 use std::env;
+
+#[cfg(not(target_os = "windows"))]
+use std::os::unix::process::CommandExt;
 
 
 macro_rules! die {
@@ -129,13 +131,15 @@ fn main() {
         None => die!("error: missing required argument <COMMAND>"),
     };
 
-    if cfg!(target_os = "windows") {
+    #[cfg(target_os = "windows")] {
         match command.spawn().and_then(|mut child| child.wait()) {
             Ok(status) => process::exit(status.code().unwrap_or(1)),
             Err(error) => die!("fatal: {}", error),
         };
-    } else {
+    }
+
+    #[cfg(not(target_os = "windows"))]{
         let error = command.exec();
         die!("fatal: {}", error);
-    };
+    }
 }
