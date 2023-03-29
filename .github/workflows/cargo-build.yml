@@ -18,7 +18,11 @@ jobs:
           override: true
 
       - name: Build
-        run: cargo build --all --release && strip target/release/ldenv && mv target/release/ldenv target/release/ldenv_amd64
+        run: |
+          cargo build --all --release && strip target/release/ldenv && mv target/release/ldenv target/release/ldenv-linux
+          mkdir builds/ldenv-linux
+          cp target/x86_64-unknown-linux-gnu/release/ldenv builds/ldenv-linux
+          tar -C builds -czvf dist/ldenv-linux.tar.gz ldenv-linux
 
       # - name: Release
       #   uses: softprops/action-gh-release@v1
@@ -48,6 +52,7 @@ jobs:
           cargo build --all --release
           mkdir builds/ldenv-win64
           cp target/release/ldenv.exe builds/ldenv-win64
+          mkdir dist
           tar -C builds -czvf dist/ldenv-win64.tar.gz ldenv-win64
 
       # - name: Release
