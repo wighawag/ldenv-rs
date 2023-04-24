@@ -125,7 +125,11 @@ fn load_env(env_mode_name: &str, mode_from_cmd: &Option<&str>, specified_mode: &
 fn main() {
 
     let matches = clap::Command::new("ldenv")
-        .about("Run a command using the environment from .env, .env.local (, env.<mode> and env.<mode>.local) files\n It also parse the command to replace `@@<name>[:@:<default>]` with their env value. Fails if not present and no default provided.\n Note that you can also provide prefix and suffix: `[prefix]@@<name>[:@:<default>][:@:suffix]`")
+        .about("\
+        Run a command using the environment from .env, .env.local (, env.<mode> and env.<mode>.local) files\n\
+        It also parse the command to replace `@@<name>[@:<default>]@:` with their env value. Fails if not present and no default provided.\n\
+        Note that you can also provide prefix and suffix: `[prefix]@@<name>[@:<default>@:][suffix]`\
+        ")
         .override_usage("ldenv [OPTIONS] <COMMAND> [...COMMAND_ARGS]")
         .allow_external_subcommands(true)
         .arg_required_else_help(true)
@@ -193,47 +197,61 @@ fn main() {
                 }
             }
 
+            // TODO remove the clone here
+            if let Some(mode) = mode.clone() {
+                if mode.len() == 0 {
+                    die!("error: mode has been specified as argument, but it is empty");
+                }
+            }
 
             load_env(&env_mode_name, &mode_from_cmd, &mode);
+            
 
             let args: Vec<String> = args.iter()
             .map(|&s| 
                 if parse {
-                    // TODO support multiple @@ in one arg
-                    // use loop over find ? to get all index
-                    if let Some(i) = s.find("@@") {
-                        let splitted: Vec<&str> = s[i+2..].split(":@:").collect();
-                        let var_name = splitted[0];
-                        if var_name.len() == 0 {
-                            die!("error: the empty '@@{}' in '{}' is not valid, please specify an ENV var name after the '@@'", var_name, s);
-                        }
-                        let default_value = if splitted.len() > 1 {
-                            Some(splitted[1])
+                    let arg_splitted: Vec<&str> = s.split("@@").collect();
+                    let mut i = 0;
+                    let result: Vec<String> = arg_splitted.iter().map(|s| {
+                        i = i +1;
+                        if i == 1 {
+                            s.to_string()
                         } else {
-                            None
-                        };
-                        let arg = if let Ok(v) = env::var(var_name) {
-                            v
-                        } else {
-                            match default_value {
-                                Some(v) => v.to_string(),
-                                None => die!("error: {} was specified in the command but there is no env variable named {}. you can provide an empty default value with '@@{}:@:<default value>' including an empty default via '@@{}:@:'", s, var_name, var_name, var_name)
+                            let splitted: Vec<&str> = s.split("@:").collect();
+                            let var_name = splitted[0];
+                            if var_name.len() == 0 {
+                                die!("error: this is not valid : '@@{}' please specify an ENV var name after '@@'", s);
                             }
-                        };
-                        let arg = if splitted.len() > 2 {
-                            format!("{}{}", arg, splitted[2])
-                        } else {
-                            arg
-                        };
-                        if i > 0 {
-                            let prefix = &s[..i];
-                            format!("{}{}", prefix, arg)
-                        } else {
-                            arg
+                            let default_value = if splitted.len() > 2 {
+                                Some(splitted[1])
+                            } else {
+                                None
+                            };
+                            let suffix = if splitted.len() > 2 {
+                                splitted[2]
+                            } else if splitted.len() > 1 {
+                                splitted[1]
+                                
+                            } else {
+                                ""
+                            };
+                            let arg = if let Ok(v) = env::var(var_name) {
+                                v
+                            } else {
+                                match default_value {
+                                    Some(v) => v.to_string(),
+                                    None => die!("\
+                                    error: @@{} was specified in the command but there is no env variable named {}.\n\
+                                    To prevent this error you can provide a default value with '@@{}@:<default value>@:'\n\
+                                    An empty default can be specified with '@@{}@:@:'",
+                                    s, 
+                                    var_name, var_name, var_name)
+                                }
+                            };
+                            format!("{}{}", arg, suffix)
                         }
-                    } else {
-                        s.to_string()
-                    }
+                    }).collect();
+                    result.join("")
                 } else {
                     s.to_string()
                 }

@@ -4,10 +4,8 @@ version = "0.1.1"
 edition = "2021"
 description = "program that load multiple env files based on mode and execute a command."
 repository = "https://github.com/wighawag/ldenv"
-homepage = "https://github.com/wighawag/ldenv"
-deocumentation = "README.md"
+homepage = "https://github.com/wighawag/ldenv#readme"
 license = "MIT"
-
 [dependencies]
 dotenvy = "0.15.7"
 clap = "3.2"
