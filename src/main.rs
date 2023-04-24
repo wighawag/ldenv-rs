@@ -57,58 +57,18 @@ fn load_env_mode_name() -> String {
     return env::var("ENV_MODE").unwrap_or("MODE".to_string())
 }
 
-fn main() {
 
-    let matches = clap::Command::new("ldenv")
-        .about("Run a command using the environment from .env, .env.local (, env.<mode> and env.<mode>.local) files\n It also parse the command to replace `@@<name>[:@:<default>]` with their env value. Fails if not present and no default provided.\n Note that you can also provide prefix and suffix: `[prefix]@@<name>[:@:<default>][:@:suffix]`")
-        .override_usage("ldenv [OPTIONS] <COMMAND> [...COMMAND_ARGS]")
-        .allow_external_subcommands(true)
-        .arg_required_else_help(true)
-        .arg(
-            Arg::new("MODE")
-                .short('m')
-                .long("mode")
-                .takes_value(true)
-                .help("mode: .env.<MODE>, default to local"),
-        )
-        .arg(
-            Arg::new("ENV_MODE_NAME")
-                .short('n')
-                .long("env-mode-name")
-                .takes_value(true)
-                .help("env-mode-name: environment variable used as mode if none is provided on the command line, default to MODE or the value of env ENV_MODE"),
-        )
-        .arg(
-            Arg::new("NO_PARSE")
-                .short('P')
-                .long("no-parse")
-                .help("no-parse: if set do not parse the args passed in. ").action(clap::ArgAction::SetTrue),
-        )
-        .get_matches();
-
-        
-    let parse = !matches.get_flag("NO_PARSE");
-
-
-    let env_mode_name = match matches.value_of("ENV_MODE_NAME") {
-        None => load_env_mode_name(),
-        Some(env_mode_name) => env_mode_name.to_string(),
-    };
-
-    // easier to test
-    // for (n,_) in env::vars() {
-    //     if !n.eq(env_mode_name) {
-    //         env::remove_var(n)
-    //     }
-    // }
-
-    let mode = match matches.value_of("MODE") {
-        // we do not read MODE from env file as this will be used to get which file to load
-        None => match env::var(&env_mode_name) {
-            Ok(str) => str,
-            Err(_) => "local".to_string(),
-        },
-        Some(mode) => mode.to_string(),
+fn load_env(env_mode_name: &str, mode_from_cmd: &Option<&str>, specified_mode: &Option<String>) {
+    let mode = match specified_mode.to_owned() {
+        Some(m) => m,
+        None => match mode_from_cmd {
+            // we do not read MODE from env file as this will be used to get which file to load
+            None => match env::var(env_mode_name) {
+                Ok(str) => str,
+                Err(_) => "local".to_string(),
+            },
+            Some(mode) => mode.to_string(),
+        }
     };
 
     // we also set the mode as env variable
@@ -159,13 +119,82 @@ fn main() {
         },
     };
 
+}
+
+
+fn main() {
+
+    let matches = clap::Command::new("ldenv")
+        .about("Run a command using the environment from .env, .env.local (, env.<mode> and env.<mode>.local) files\n It also parse the command to replace `@@<name>[:@:<default>]` with their env value. Fails if not present and no default provided.\n Note that you can also provide prefix and suffix: `[prefix]@@<name>[:@:<default>][:@:suffix]`")
+        .override_usage("ldenv [OPTIONS] <COMMAND> [...COMMAND_ARGS]")
+        .allow_external_subcommands(true)
+        .arg_required_else_help(true)
+        .arg(
+            Arg::new("MODE")
+                .short('m')
+                .long("mode")
+                .takes_value(true)
+                .help("mode: .env.<MODE>, default to local"),
+        )
+        .arg(
+            Arg::new("ENV_MODE_NAME")
+                .short('n')
+                .long("env-mode-name")
+                .takes_value(true)
+                .help("env-mode-name: environment variable used as mode if none is provided on the command line, default to MODE or the value of env ENV_MODE"),
+        )
+        .arg(
+            Arg::new("NO_PARSE")
+                .short('P')
+                .long("no-parse")
+                .help("no-parse: if set do not parse the args passed in. ").action(clap::ArgAction::SetTrue),
+        )
+        .get_matches();
+
+        
+    let parse = !matches.get_flag("NO_PARSE");
+
+
+    let env_mode_name = match matches.value_of("ENV_MODE_NAME") {
+        None => load_env_mode_name(),
+        Some(env_mode_name) => env_mode_name.to_string(),
+    };
+
+    let mode_from_cmd = matches.value_of("MODE");
+
 
     let mut command = match matches.subcommand() {
         Some((name, matches)) => {
-            let args = matches
+            let mut remove_next = false;
+            let mut mode: Option<String> = None;
+            let symbol = "@@";
+            let mut args = matches
                 .values_of("")
                 .map(|v| v.collect())
                 .unwrap_or(Vec::new());
+            
+            args.retain(|arg| {
+                if remove_next  {
+                    mode =Some(arg.to_string());
+                    remove_next = false;
+                    return false;
+                };
+                if arg.eq(&symbol) {
+                    remove_next = true;
+                    false
+                } else {
+                    true
+                }
+            });
+
+            if remove_next {
+                if mode_from_cmd.is_none() {
+                    die!("error: expect to be provided a mode (which set the {} env variable) as last argument", env_mode_name);
+                }
+            }
+
+
+            load_env(&env_mode_name, &mode_from_cmd, &mode);
 
             let args: Vec<String> = args.iter()
             .map(|&s| 
