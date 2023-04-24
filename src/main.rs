@@ -235,7 +235,32 @@ fn main() {
                             } else {
                                 ""
                             };
-                            let arg = if let Ok(v) = env::var(var_name) {
+                            let var_names: Vec<&str> = var_name.split(",").collect();
+                            let mut potential_value: Option<String> = None;
+                            for name in var_names {
+                                let splitted_by_colon = name.split(":");
+                                let mut j = 0;
+                                let actual_name_as_vec: Vec<String> = splitted_by_colon.map(|s| {
+                                    j = j +1;
+                                    if j % 2 == 1 {
+                                        s.to_string()
+                                    } else {
+                                        if let Ok(name_found) = env::var(s) {
+                                            name_found
+                                        } else {
+                                            "".to_string()
+                                        }
+                                    }
+                                }).collect();
+                                // println!("{:?}", actual_name_as_vec);
+                                let actual_name = actual_name_as_vec.join("");
+                                // println!("{}", actual_name);
+                                if let Ok(name_found) = env::var(actual_name) {
+                                    potential_value = Some(name_found);
+                                    break;
+                                }
+                            }
+                            let arg = if let Some(v) = potential_value {
                                 v
                             } else {
                                 match default_value {
