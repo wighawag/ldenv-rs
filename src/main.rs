@@ -30,13 +30,13 @@ fn make_command(name: &str, args: Vec<String>) -> process::Command {
     return command;
 }
 
-fn load_env_mode_name() -> String {
+fn load_mode_env_name() -> String {
     
     if let Ok(vars) = dotenvy::from_filename_iter(".env.local") {
         for item in vars {
             if let Ok(item) = item {
                 let (key, val) = item;
-                if key.eq("ENV_MODE") {
+                if key.eq("MODE_ENV") {
                     return val;
                 }
             }
@@ -47,23 +47,23 @@ fn load_env_mode_name() -> String {
         for item in vars {
             if let Ok(item) = item {
                 let (key, val) = item;
-                if key.eq("ENV_MODE") {
+                if key.eq("MODE_ENV") {
                     return val;
                 }
             }
         }
     }
 
-    return env::var("ENV_MODE").unwrap_or("MODE".to_string())
+    return env::var("MODE_ENV").unwrap_or("MODE".to_string())
 }
 
 
-fn load_env(env_mode_name: &str, mode_from_cmd: &Option<&str>, specified_mode: &Option<String>) {
+fn load_env(mode_env_name: &str, mode_from_cmd: &Option<&str>, specified_mode: &Option<String>) {
     let mode = match specified_mode.to_owned() {
         Some(m) => m,
         None => match mode_from_cmd {
             // we do not read MODE from env file as this will be used to get which file to load
-            None => match env::var(env_mode_name) {
+            None => match env::var(mode_env_name) {
                 Ok(str) => str,
                 Err(_) => "local".to_string(),
             },
@@ -72,7 +72,7 @@ fn load_env(env_mode_name: &str, mode_from_cmd: &Option<&str>, specified_mode: &
     };
 
     // we also set the mode as env variable
-    env::set_var(&env_mode_name, &mode);
+    env::set_var(&mode_env_name, &mode);
 
     
     if !mode.eq("local") {
@@ -141,11 +141,11 @@ fn main() {
                 .help("mode: .env.<MODE>, default to local"),
         )
         .arg(
-            Arg::new("ENV_MODE_NAME")
+            Arg::new("MODE_ENV_NAME")
                 .short('n')
                 .long("env-mode-name")
                 .takes_value(true)
-                .help("env-mode-name: environment variable used as mode if none is provided on the command line, default to MODE or the value of env ENV_MODE"),
+                .help("env-mode-name: environment variable used as mode if none is provided on the command line, default to MODE or the value of env MODE_ENV"),
         )
         .arg(
             Arg::new("NO_PARSE")
@@ -159,9 +159,9 @@ fn main() {
     let parse = !matches.get_flag("NO_PARSE");
 
 
-    let env_mode_name = match matches.value_of("ENV_MODE_NAME") {
-        None => load_env_mode_name(),
-        Some(env_mode_name) => env_mode_name.to_string(),
+    let mode_env_name = match matches.value_of("MODE_ENV_NAME") {
+        None => load_mode_env_name(),
+        Some(mode_env_name) => mode_env_name.to_string(),
     };
 
     let mode_from_cmd = matches.value_of("MODE");
@@ -193,7 +193,7 @@ fn main() {
 
             if remove_next {
                 if mode_from_cmd.is_none() {
-                    die!("error: expect to be provided a mode (which set the {} env variable) as last argument", env_mode_name);
+                    die!("error: expect to be provided a mode (which set the {} env variable) as last argument", mode_env_name);
                 }
             }
 
@@ -204,7 +204,7 @@ fn main() {
                 }
             }
 
-            load_env(&env_mode_name, &mode_from_cmd, &mode);
+            load_env(&mode_env_name, &mode_from_cmd, &mode);
             
 
             let args: Vec<String> = args.iter()
